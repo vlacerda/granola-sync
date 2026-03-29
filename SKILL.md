@@ -20,7 +20,7 @@ Fetches new/updated meeting notes from the Granola API and writes them as Markdo
 Run the sync script:
 
 ```bash
-python3 ".claude/skills/sync-granola/sync_granola.py"
+python3 "${CLAUDE_SKILL_DIR}/sync_granola.py"
 ```
 
 Options:
