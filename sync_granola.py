@@ -55,6 +55,44 @@ def _post(url: str, headers: dict, body: dict) -> dict | str:
             return text
 
 
+# --- Preflight checks --------------------------------------------------------
+
+def preflight_check() -> None:
+    """Verify the environment is ready for syncing. Exits with a helpful message if not."""
+    if sys.platform != "darwin":
+        print("Error: This script only supports macOS.")
+        print("The Granola desktop app stores its token at:")
+        print(f"  {TOKEN_PATH}")
+        print("On other platforms, this path will not exist.")
+        sys.exit(1)
+
+    if not TOKEN_PATH.exists():
+        print("Error: Granola token file not found at:")
+        print(f"  {TOKEN_PATH}")
+        print()
+        print("To fix this:")
+        print("  1. Install the Granola desktop app from https://granola.ai")
+        print("  2. Open Granola and log in to your account")
+        print("  3. Re-run this script")
+        sys.exit(1)
+
+    try:
+        raw = TOKEN_PATH.read_text()
+        data = json.loads(raw)
+        if "workos_tokens" not in data:
+            raise KeyError("workos_tokens")
+        tokens = json.loads(data["workos_tokens"])
+        if "access_token" not in tokens or "refresh_token" not in tokens:
+            raise KeyError("access_token or refresh_token")
+    except (json.JSONDecodeError, KeyError) as e:
+        print("Error: Granola token file exists but has unexpected format.")
+        print(f"  {TOKEN_PATH}")
+        print(f"  Detail: {e}")
+        print()
+        print("Try logging out and back in to the Granola desktop app.")
+        sys.exit(1)
+
+
 # --- Token management --------------------------------------------------------
 
 def get_access_token() -> str:
@@ -252,6 +290,7 @@ def migrate_to_monthly_folders(vault: Path) -> int:
 # --- Main sync logic ---------------------------------------------------------
 
 def sync(days_back: int = DAYS_BACK, force: bool = False, vault_dir: Path = VAULT_DIR) -> list[dict]:
+    preflight_check()
     access_token = get_access_token()
     headers = {"Authorization": f"Bearer {access_token}"}
 
